@@ -16,7 +16,6 @@ class Authoritylabspartner{
 	 * POST to the resource at the specified path.
 	 *
 	 * @param string $keyword   	Keyword to query against
-	 * @param string  $domain		Domain to check for keyword placement
 	 * @param string  $auth_token	Authority Labs Partner Auth Token
 	 * @param string  $engine		OPTIONAL Search engine to query
 	 * @param string  $locale		OPTIONAL Language/Country code
@@ -25,9 +24,9 @@ class Authoritylabspartner{
 	 * @return object Returns formatted result
 	 */
 
-	public function partnerKeyword($keyword, $domain, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
+	public function partnerKeyword($keyword, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
 	{
-		$subdomain = 'api';
+		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/';
 		$method = 'POST';
 		$vars = array(
@@ -44,14 +43,13 @@ class Authoritylabspartner{
 			$vars['callback'] = $callback;
 		}
 		
-		return $this->_request($path, $domain, $subdomain, $method, $vars);
+		return $this->_request($path, $endpoint, $method, $vars);
 	}
 	
 	/**
 	 * POST to the resource at the specified path.
 	 *
 	 * @param string $keyword   	Keyword to query against
-	 * @param string  $domain		Domain to check for keyword placement
 	 * @param string  $auth_token	Authority Labs Partner Auth Token
 	 * @param string  $engine		OPTIONAL Search engine to query
 	 * @param string  $locale		OPTIONAL Language/Country code
@@ -60,9 +58,9 @@ class Authoritylabspartner{
 	 * @return object Returns formatted result
 	 */
 	
-	public function priorityPartnerKeyword($keyword, $domain, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
+	public function priorityPartnerKeyword($keyword, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
 	{
-		$subdomain = 'api';
+		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/priority/';
 		$method = "POST";
 		$vars = array(
@@ -78,14 +76,14 @@ class Authoritylabspartner{
 		{
 			$vars['callback'] = $callback;
 		}
-		return $this->_request($path, $domain, $subdomain, $method="POST", $vars);
+		return $this->_request($path, $endpoint, $method="POST", $vars);
 	}
 	
 	/**
 	 * POST to the resource at the specified path.
 	 *
 	 * @param string $keyword   	Keyword to query against
-	 * @param string  $domain		Domain to check for keyword placement
+	 * @param string  $url   		URL being queried for ranking
 	 * @param string  $auth_token	Authority Labs Partner Auth Token
 	 * @param string  $engine		OPTIONAL Search engine to query
 	 * @param string  $locale		OPTIONAL Language/Country code
@@ -94,9 +92,9 @@ class Authoritylabspartner{
 	 * @return object Returns formatted result
 	 */
 	
-	public function getPartnerKeyword($keyword, $domain, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
+	public function getPartnerKeyword($keyword, $url, $auth_token, $engine="google", $locale="en-US",$pages_from="false")
 	{
-		$subdomain = 'api';
+		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/get';
 		$method = "GET";
 		$vars = array(
@@ -108,19 +106,77 @@ class Authoritylabspartner{
 			
 		);
 		
-		if($callback!=null)
+		$result = $this->_request($path, $endpoint, $method, $vars);
+
+		if(isset($result->result))
 		{
-			$vars['callback'] = $callback;
+			return $this->_parseit($url, $result->result);
 		}
-		
-		return $this->_request($path, $domain, $subdomain, $method, $vars);
+		else
+		{
+			return 'serps not available';
+		}
 		
 	}
 
-	private function _request($path, $domain, $subdomain, $method = "POST", $vars = array()) 
+	/**
+	 * Interpret SERP for specified URL from given JSON data.
+	 *
+	 * @param string  $url   		URL being queried for ranking
+	 * @param string  $json_url		URL for JSON response from Authority Labs
+	 * @param string  $auth_token	Authority Labs Partner Auth Token
+	 *
+	 * @return array Returns formatted result
+	 */
+
+	public function parseRanks($url, $json_url, $auth_token)
 	{
-	
-		$endpoint = "http://$subdomain.authoritylabs.com/";
+		$arr_rankings = '';
+
+		$json_result = $this->_request('', $json_url, 'GET', array('auth_token' => $auth_token));
+
+		$json_data = $json_result->result;
+
+		$arr_rankings = $this->_parseit($url, $json_data);
+
+		return $arr_rankings;
+	}
+
+	private function _parseit($url, $json_data)
+	{
+		$url = str_ireplace('http://','',$url);
+
+		if(is_object($json_data)){
+
+			$serp = get_object_vars($json_data->serp);
+
+			$arr_rankings = array();
+
+			foreach($serp as $key=>$val){
+
+				$match = $val->href;
+
+				if(stristr($match, '.' . $url))
+					$arr_rankings[$key] = $val->href;	
+					//$arr_rankings[] = $key;
+
+				if(stristr($match, '/' . $url))
+					$arr_rankings[$key] = $val->href;
+					//$arr_rankings[] = $key;
+			}
+
+			ksort($arr_rankings);
+
+			return $arr_rankings;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	private function _request($path, $endpoint, $method = "POST", $vars = array()) 
+	{
         $encoded = "";
         foreach($vars AS $key=>$value)
             $encoded .= "$key=".urlencode($value)."&";
@@ -130,16 +186,16 @@ class Authoritylabspartner{
         
         // construct full url
         $url = $endpoint.$path;
-        
+
         // if GET and vars, append them
         if($method == "GET") 
-            $url .= (FALSE === strpos($path, '?')?"?":"&").$encoded;
+            $url .= (FALSE === strstr($url, '?')?"?":"&").$encoded;
 
         // initialize a new curl object            
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
-       // curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+    	// curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
         switch(strtoupper($method)) {
             case "GET":
                 curl_setopt($curl, CURLOPT_HTTPGET, TRUE);
@@ -193,46 +249,7 @@ class Authoritylabspartner{
         	$final_data->result = json_decode($result);
         }
 
-        return $this->_parsed_response($final_data, $domain);
-    }
-    
-    private function _parsed_response($final_data, $domain)
-    {
-    	if($final_data->response_code != 200)
-    	{
-    		$final_data->error = 'Data Unavailable';
-    		return $final_data;
-    	}
-    	else
-    	{
-    		if(isset($final_data->result) && is_object($final_data->result))
-    		{
-    			$serps = get_object_vars($final_data->result->serp);
-    			
-    			foreach($serps as $k=>$v)
-    			{
-    				if($v->base_url == $this->_stripit($domain))
-    				{
-    					$v->rank = $k;
-    					$final_data->domain_rank = $serps[$k];
-    					return $final_data;
-    				}
-    			}
-    			
-    			$final_data->rank_unavailable = 'Rank not found in result set';
-    			
-    		}
-    		return $final_data;
-    	}
-    		
-    }
-    
-    private function _stripit($url) 
-    { 
-       $url = trim($url);
-       $url = preg_replace("/^(http:\/\/)*(www.)*/is", "", $url); 
-       $url = preg_replace("#/$#" , "" ,$url); 
-       return $url; 
+        return $final_data;
     }
     
 }
