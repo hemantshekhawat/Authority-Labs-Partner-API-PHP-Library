@@ -19,7 +19,7 @@ $result = $authlabs->priorityPartnerKeyword("vuurr", 'vuurr.com', $auth_token, "
 // You can also do a normal request that will not return in a matter of minutes (commented out below)
 //$result = $authlabs->partnerKeyword("vuurr", 'vuurr.com', $auth_token, "google", "en-US", "false", $callback_url);
 
-// dump the results to the page so you can see the array returned - you should get a response code of 200. 
+// dump the results to the page so you can see the array returned - you should get a response code of 200.
 
 echo "<pre>";
 print_r($result);

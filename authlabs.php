@@ -9,8 +9,9 @@
  * @license  http://creativecommons.org/licenses/MIT/ MIT
  * @link     https://github.com/kressaty/Authority-Labs-Partner-API-PHP-Library
  */
- 
-class Authoritylabspartner{
+class Authoritylabspartner {
+
+	public $endpoint = 'http://api.authoritylabs.com/';
 
 	/**
 	 * POST to the resource at the specified path.
@@ -23,10 +24,8 @@ class Authoritylabspartner{
 	 *
 	 * @return object Returns formatted result
 	 */
-
-	public function partnerKeyword($keyword, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
+	public function partnerKeyword($keyword, $auth_token, $engine = "google", $locale = "en-US",$pages_from = "false",$callback = null)
 	{
-		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/';
 		$method = 'POST';
 		$vars = array(
@@ -35,17 +34,16 @@ class Authoritylabspartner{
 			'engine' => $engine,
 			'locale' => $locale,
 			'pages_from' => $pages_from,
-			
 		);
-		
-		if($callback!=null)
+
+		if ($callback != null)
 		{
 			$vars['callback'] = $callback;
 		}
-		
-		return $this->_request($path, $endpoint, $method, $vars);
+
+		return $this->_request($path, $this->endpoint, $method, $vars);
 	}
-	
+
 	/**
 	 * POST to the resource at the specified path.
 	 *
@@ -57,10 +55,8 @@ class Authoritylabspartner{
 	 *
 	 * @return object Returns formatted result
 	 */
-	
-	public function priorityPartnerKeyword($keyword, $auth_token, $engine="google", $locale="en-US",$pages_from="false",$callback=null)
+	public function priorityPartnerKeyword($keyword, $auth_token, $engine = "google", $locale = "en-US", $pages_from = "false", $callback = null)
 	{
-		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/priority/';
 		$method = "POST";
 		$vars = array(
@@ -69,16 +65,16 @@ class Authoritylabspartner{
 			'engine' => $engine,
 			'locale' => $locale,
 			'pages_from' => $pages_from,
-			
 		);
-		
-		if($callback!=null)
+
+		if ($callback != null)
 		{
 			$vars['callback'] = $callback;
 		}
-		return $this->_request($path, $endpoint, $method="POST", $vars);
+
+		return $this->_request($path, $this->endpoint, $method = "POST", $vars);
 	}
-	
+
 	/**
 	 * POST to the resource at the specified path.
 	 *
@@ -91,10 +87,8 @@ class Authoritylabspartner{
 	 *
 	 * @return object Returns formatted result
 	 */
-	
-	public function getPartnerKeyword($keyword, $url, $auth_token, $engine="google", $locale="en-US",$pages_from="false")
+	public function getPartnerKeyword($keyword, $url, $auth_token, $engine = "google", $locale = "en-US", $pages_from = "false")
 	{
-		$endpoint = 'http://api.authoritylabs.com/';
 		$path = 'keywords/get';
 		$method = "GET";
 		$vars = array(
@@ -103,12 +97,11 @@ class Authoritylabspartner{
 			'engine' => $engine,
 			'locale' => $locale,
 			'pages_from' => $pages_from,
-			
 		);
-		
-		$result = $this->_request($path, $endpoint, $method, $vars);
 
-		if(isset($result->result))
+		$result = $this->_request($path, $this->endpoint, $method, $vars);
+
+		if (isset($result->result))
 		{
 			return $this->_parseit($url, $result->result);
 		}
@@ -116,7 +109,7 @@ class Authoritylabspartner{
 		{
 			return 'serps not available';
 		}
-		
+
 	}
 
 	/**
@@ -128,7 +121,6 @@ class Authoritylabspartner{
 	 *
 	 * @return array Returns formatted result
 	 */
-
 	public function parseRanks($url, $json_url, $auth_token)
 	{
 		$arr_rankings = '';
@@ -146,21 +138,21 @@ class Authoritylabspartner{
 	{
 		$url = str_ireplace('http://','',$url);
 
-		if(is_object($json_data)){
+		if (is_object($json_data)) {
 
 			$serp = get_object_vars($json_data->serp);
 
 			$arr_rankings = array();
 
-			foreach($serp as $key=>$val){
+			foreach ($serp as $key => $val) {
 
 				$match = $val->href;
 
-				if(stristr($match, '.' . $url))
-					$arr_rankings[$key] = $val->href;	
+				if (stristr($match, '.' . $url))
+					$arr_rankings[$key] = $val->href;
 					//$arr_rankings[] = $key;
 
-				if(stristr($match, '/' . $url))
+				if (stristr($match, '/' . $url))
 					$arr_rankings[$key] = $val->href;
 					//$arr_rankings[] = $key;
 			}
@@ -175,81 +167,87 @@ class Authoritylabspartner{
 		}
 	}
 
-	private function _request($path, $endpoint, $method = "POST", $vars = array()) 
+	/**
+	 * Send the CURL request
+	 * @param  string $path     Path to request
+	 * @param  string $endpoint URL endpoint
+	 * @param  string $method   HTTP Method
+	 * @param  array  $vars     Variables to include in the request
+	 * @return array            Response data
+	 */
+	private function _request($path, $endpoint, $method = "POST", $vars = array())
 	{
-        $encoded = "";
-        foreach($vars AS $key=>$value)
-            $encoded .= "$key=".urlencode($value)."&";
-        $encoded = substr($encoded, 0, -1);
-        $tmpfile = "";
-        $fp = null;
-        
-        // construct full url
-        $url = $endpoint.$path;
+		$encoded = "";
+		foreach ($vars AS $key => $value)
+			$encoded .= "$key=".urlencode($value)."&";
+		$encoded = substr($encoded, 0, -1);
+		$tmpfile = "";
+		$fp = null;
 
-        // if GET and vars, append them
-        if($method == "GET") 
-            $url .= (FALSE === strstr($url, '?')?"?":"&").$encoded;
+		// construct full url
+		$url = $endpoint . $path;
 
-        // initialize a new curl object            
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
-    	// curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
-        switch(strtoupper($method)) {
-            case "GET":
-                curl_setopt($curl, CURLOPT_HTTPGET, TRUE);
-                break;
-            case "POST":
-                curl_setopt($curl, CURLOPT_POST, TRUE);
-                curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
-                break;
-            case "PUT":
-                // curl_setopt($curl, CURLOPT_PUT, TRUE);
-                curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
-                file_put_contents($tmpfile = tempnam("/tmp", "put_"),
-                    $encoded);
-                curl_setopt($curl, CURLOPT_INFILE, $fp = fopen($tmpfile,
-                    'r'));
-                curl_setopt($curl, CURLOPT_INFILESIZE, 
-                    filesize($tmpfile));
-                break;
-            case "DELETE":
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-                break;
-            default:
-               return "Unknown method $method";
-                break;
-        }
-        
-       
-        
-        // do the request. If FALSE, then an exception occurred    
-        if(FALSE === ($result = curl_exec($curl)))
-           
-           return "Curl failed with error " . curl_error($curl);
-        
-        // get result code
-        $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        
-        // unlink tmpfiles
-        if($fp)
-            fclose($fp);
-        if(strlen($tmpfile))
-            unlink($tmpfile);
-            
-        $final_data->response_code = $responseCode;
-        if($result == "OK")
-        {
-        	$final_data->result = $result;
-        }
-        else
-        {
-        	$final_data->result = json_decode($result);
-        }
+		// if GET and vars, append them
+		if ($method == "GET")
+			$url .= (FALSE === strstr($url, '?') ? "?" : "&") . $encoded;
 
-        return $final_data;
-    }
-    
+		// initialize a new curl object
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+		// curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+		switch (strtoupper($method)) {
+			case "GET":
+				curl_setopt($curl, CURLOPT_HTTPGET, TRUE);
+				break;
+			case "POST":
+				curl_setopt($curl, CURLOPT_POST, TRUE);
+				curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
+				break;
+			case "PUT":
+				// curl_setopt($curl, CURLOPT_PUT, TRUE);
+				curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+				file_put_contents($tmpfile = tempnam("/tmp", "put_"),
+					$encoded);
+				curl_setopt($curl, CURLOPT_INFILE, $fp = fopen($tmpfile,
+					'r'));
+				curl_setopt($curl, CURLOPT_INFILESIZE,
+					filesize($tmpfile));
+				break;
+			case "DELETE":
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+				break;
+			default:
+				return "Unknown method $method";
+				break;
+		}
+
+		// do the request. If FALSE, then an exception occurred
+		if (FALSE === ($result = curl_exec($curl)))
+
+			return "Curl failed with error " . curl_error($curl);
+
+		// get result code
+		$responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+		// unlink tmpfiles
+		if ($fp)
+			fclose($fp);
+		if (strlen($tmpfile))
+			unlink($tmpfile);
+
+		$final_data->response_code = $responseCode;
+		if ($result == "OK")
+		{
+			$final_data->result = $result;
+		}
+		else
+		{
+			$final_data->result = json_decode($result);
+		}
+
+		return $final_data;
+	}
+
 }
